@@ -1,0 +1,158 @@
+{
+  "app_name": "SPHR Security Log",
+  "personality": "7 Dark-First Utility DARK",
+  "personality_one_liner": "A high-contrast, tactical night-patrol command center built for speed, glare reduction, and field operational clarity.",
+  "color": {
+    "surface": "#101112",
+    "onSurface": "#F1F2F3",
+    "surfaceSecondary": "#1A1C1E",
+    "onSurfaceSecondary": "#A1A5A9",
+    "surfaceTertiary": "#25282B",
+    "onSurfaceTertiary": "#D1D4D7",
+    "surfaceInverse": "#F1F2F3",
+    "onSurfaceInverse": "#101112",
+    "brand": "#F5A623",
+    "brandPrimary": "#F5A623",
+    "onBrandPrimary": "#101112",
+    "brandSecondary": "#D88D16",
+    "onBrandSecondary": "#101112",
+    "brandTertiary": "#4A3610",
+    "onBrandTertiary": "#F5A623",
+    "success": "#2ECA6A",
+    "onSuccess": "#000000",
+    "warning": "#FFC107",
+    "onWarning": "#101112",
+    "error": "#FF4C4C",
+    "onError": "#FFFFFF",
+    "info": "#2F80ED",
+    "onInfo": "#FFFFFF",
+    "border": "#2A2D31",
+    "borderStrong": "#4A4E54",
+    "divider": "#1A1C1E"
+  },
+  "typography": {
+    "displayFontFamily": "Barlow Condensed",
+    "textFontFamily": "IBM Plex Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous tap targets for one-handed use, but compact vertical rhythms to prioritize glanceability of operational data.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 4,
+    "md": 8,
+    "lg": 12,
+    "pill": 999
+  },
+  "shadow_tier": 0,
+  "navigation": "stack_only",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": false,
+    "do's": [],
+    "dont's": [
+      "No blur or glass on field operational tools - clarity and contrast beat aesthetics",
+      "Do not use glass for headers or bottom sheets in this app"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "haptics": {
+    "events": {
+      "start_shift": "impactMedium",
+      "log_entry": "impactHeavy",
+      "capture_gps": "notificationSuccess",
+      "attach_photo": "impactLight",
+      "submit_report": "notificationSuccess"
+    }
+  },
+  "screens": [
+    {
+      "name": "Shift Login",
+      "purpose": "Guard identifies themselves, sets shift date, and selects the manager handling diversions before starting patrol.",
+      "states": {
+        "loading": "Centered brand spinner.",
+        "empty": "N/A",
+        "error": "Error fetching managers or saving shift data."
+      },
+      "layout": "Utilitarian form structure. Large text inputs for Security Number and Name. A horizontally scrollable list or a set of large radio-style cards for 'Manager Diversion Selector' (Name + Mobile). A sticky bottom CTA 'Start Shift' sitting outside the scroll view so it's always accessible."
+    },
+    {
+      "name": "Patrol Dashboard",
+      "purpose": "A live operational command center showing sync status, current shift info, and a feed of logged entries.",
+      "states": {
+        "loading": "Skeleton rows of logs.",
+        "empty": "Full-screen 'night sky' illustration with 'No logs yet. Start your patrol.' and a primary CTA.",
+        "error": "Connection offline message (expected in field operations, emphasize local save instead of error)."
+      },
+      "layout": "Top persistent stats bar showing 'Offline Mode: Syncing...' or 'Synced', and active manager. Main area is a chronological list of logged checkpoints with timestamps. A large sticky FAB or bottom sticky primary CTA 'Log Patrol Entry'. Use warm brand amber accents for active states."
+    },
+    {
+      "name": "Log Entry Form",
+      "purpose": "Fast data entry for each patrol checkpoint with automatic timestamping and attachment options.",
+      "states": {
+        "loading": "Spinner while getting GPS lock.",
+        "empty": "N/A",
+        "error": "Failed to get GPS location -> 'Retry GPS' button."
+      },
+      "layout": "Auto-locked timestamp at the top. Single-column form: 'Location' input, 'Action Taken' large text area with an inline Voice-to-Text icon button. Two large, tactile action buttons (half-width grid) for 'Capture GPS' and 'Attach Photo'. Thumb-zone sticky CTA 'Save Entry' at bottom."
+    },
+    {
+      "name": "Shift Summary & Submit",
+      "purpose": "Review the full night's logs, export to PDF, and launch email app to submit.",
+      "states": {
+        "loading": "Generating PDF spinner.",
+        "empty": "N/A",
+        "error": "Failed to open mail app."
+      },
+      "layout": "A summary card with total patrols and shift duration. Below it, a final list of entries. A sticky bottom container with two actions: a secondary button for 'Export PDF' and a primary button 'Submit Nightly Report'."
+    }
+  ],
+  "images": {
+    "empty_state_night": {
+      "url": "https://images.unsplash.com/photo-1501418611786-e29f9929fe03?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzN8MHwxfHNlYXJjaHwxfHxuaWdodCUyMHNreSUyMG1vb24lMjBzdGFyc3xlbnwwfHx8fDE3ODIwMTUyMDV8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Dark night sky with clouds and stars, representing the after-hours patrol environment"
+    },
+    "location_pool": {
+      "url": "https://images.pexels.com/photos/7974839/pexels-photo-7974839.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "alt": "Resort pool illuminated at night"
+    },
+    "location_tent": {
+      "url": "https://images.pexels.com/photos/2526025/pexels-photo-2526025.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "alt": "Camping tent glowing in the dark night"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Prioritize one-handed usage: buttons must be 44x44pt minimum, with primary CTAs strictly pinned to the bottom of the screen above the safe area.",
+    "Do NOT use glassmorphism. Use solid surfaceSecondary or surfaceTertiary to maintain high-contrast readability in field environments.",
+    "Implement the 'Dark-First Utility' aesthetic: #101112 backgrounds with amber (#F5A623) accents. Do not use pure black (#000000) for large surfaces to avoid harsh contrast fatigue.",
+    "Ensure 'Offline Sync' is a prominent status indicator. It should feel robust, letting the user know their data is safe locally.",
+    "For the Manager Diversion Selector, use a scrollable list of chunky, tactile radio cards rather than standard dropdowns.",
+    "Include a gradient scrim when placing text over the location photo attachments to guarantee WCAG compliance.",
+    "The Voice-to-Text action should be prominently placed inside or right next to the 'Action Taken' text area.",
+    "Ensure the GPS capture locks the coordinates and displays a success state clearly."
+  ]
+}
