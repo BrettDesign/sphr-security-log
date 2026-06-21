@@ -9,14 +9,27 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Tag patrol entries with your location",
+        "NSCameraUsageDescription": "Attach photo evidence to patrol entries",
+        "NSPhotoLibraryUsageDescription": "Attach photos to patrol entries",
+        "NSMicrophoneUsageDescription": "Dictate patrol reports by voice",
+        "NSSpeechRecognitionUsageDescription": "Convert your spoken report to text"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -33,7 +46,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#000"
         }
-      ]
+      ],
+      "expo-mail-composer",
+      "expo-speech-recognition"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,0 +1,112 @@
+"""SPHR Security Log API tests"""
+import os
+import uuid
+import pytest
+import requests
+
+BASE_URL = (os.environ.get('EXPO_PUBLIC_BACKEND_URL') or 'https://night-patrol-log.preview.emergentagent.com').rstrip('/')
+
+
+@pytest.fixture(scope="module")
+def client():
+    s = requests.Session()
+    s.headers.update({"Content-Type": "application/json"})
+    return s
+
+
+# --- Managers ---
+class TestManagers:
+    def test_get_managers_seeded(self, client):
+        r = client.get(f"{BASE_URL}/api/managers", timeout=20)
+        assert r.status_code == 200
+        data = r.json()
+        assert isinstance(data, list)
+        names = [m["name"] for m in data]
+        assert "Duty Manager" in names
+        assert "Resort Manager" in names
+        for m in data:
+            assert "id" in m and "mobile" in m
+            assert "_id" not in m
+
+    def test_create_and_delete_manager(self, client):
+        payload = {"name": f"TEST_Mgr_{uuid.uuid4().hex[:6]}", "mobile": "0499 999 999"}
+        r = client.post(f"{BASE_URL}/api/managers", json=payload, timeout=20)
+        assert r.status_code == 200
+        created = r.json()
+        assert created["name"] == payload["name"]
+        assert created["mobile"] == payload["mobile"]
+        mid = created["id"]
+        # verify persisted
+        r2 = client.get(f"{BASE_URL}/api/managers", timeout=20)
+        assert mid in [m["id"] for m in r2.json()]
+        # delete
+        d = client.delete(f"{BASE_URL}/api/managers/{mid}", timeout=20)
+        assert d.status_code == 200
+        # verify gone
+        r3 = client.get(f"{BASE_URL}/api/managers", timeout=20)
+        assert mid not in [m["id"] for m in r3.json()]
+
+    def test_delete_unknown_manager_404(self, client):
+        r = client.delete(f"{BASE_URL}/api/managers/{uuid.uuid4()}", timeout=20)
+        assert r.status_code == 404
+
+
+# --- Reports ---
+class TestReports:
+    def test_upsert_report_create_then_update(self, client):
+        rid = str(uuid.uuid4())
+        entry = {
+            "id": str(uuid.uuid4()),
+            "location": "Main Gate",
+            "action": "Perimeter check OK",
+            "timestamp": "2026-01-01T22:00:00Z",
+            "time_label": "22:00",
+            "latitude": -28.0167,
+            "longitude": 153.4000,
+            "photo": None,
+        }
+        payload = {
+            "id": rid,
+            "security_number": "TEST_SG-204",
+            "guard_name": "TEST_John Smith",
+            "shift_date": "01/01/2026",
+            "manager_name": "Duty Manager",
+            "manager_mobile": "0400 000 000",
+            "entries": [entry],
+            "submitted": False,
+        }
+        r = client.post(f"{BASE_URL}/api/reports", json=payload, timeout=20)
+        assert r.status_code == 200, r.text
+        rep = r.json()
+        assert rep["id"] == rid
+        assert len(rep["entries"]) == 1
+        assert rep["entries"][0]["location"] == "Main Gate"
+        assert rep["entries"][0]["latitude"] == -28.0167
+
+        # update: add another entry, mark submitted
+        entry2 = {**entry, "id": str(uuid.uuid4()), "location": "Pool Area", "action": "All clear"}
+        payload["entries"].append(entry2)
+        payload["submitted"] = True
+        r2 = client.post(f"{BASE_URL}/api/reports", json=payload, timeout=20)
+        assert r2.status_code == 200
+        rep2 = r2.json()
+        assert rep2["id"] == rid
+        assert len(rep2["entries"]) == 2
+        assert rep2["submitted"] is True
+
+        # GET single
+        g = client.get(f"{BASE_URL}/api/reports/{rid}", timeout=20)
+        assert g.status_code == 200
+        got = g.json()
+        assert got["id"] == rid
+        assert got["submitted"] is True
+        assert "_id" not in got
+
+        # list contains it
+        ls = client.get(f"{BASE_URL}/api/reports", timeout=20)
+        assert ls.status_code == 200
+        assert rid in [x["id"] for x in ls.json()]
+
+    def test_get_report_unknown_404(self, client):
+        r = client.get(f"{BASE_URL}/api/reports/{uuid.uuid4()}", timeout=20)
+        assert r.status_code == 404
