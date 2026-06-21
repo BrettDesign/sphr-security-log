@@ -100,7 +100,7 @@ export async function exportPdf(shift: Shift): Promise<string> {
 
 // Returns "sent" | "composer" | "mailto"
 export async function submitReport(shift: Shift): Promise<string> {
-  const subject = `SPHR Night Patrol Report — ${shift.guard_name} — ${shift.shift_date}`;
+  const subject = "SPHR Nightly security report";
   const body = buildPlainText(shift);
 
   const available =
