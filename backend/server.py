@@ -79,21 +79,6 @@ class ReportCreate(BaseModel):
     submitted: bool = False
 
 
-DEFAULT_MANAGERS = [
-    {"name": "Duty Manager", "mobile": "0400 000 000"},
-    {"name": "Resort Manager", "mobile": "0411 111 111"},
-]
-
-
-@app.on_event("startup")
-async def seed_managers():
-    count = await db.managers.count_documents({})
-    if count == 0:
-        for m in DEFAULT_MANAGERS:
-            await db.managers.insert_one(Manager(**m).dict())
-        logger.info("Seeded default managers")
-
-
 @api_router.get("/")
 async def root():
     return {"message": "SPHR Security Log API", "status": "ok"}
