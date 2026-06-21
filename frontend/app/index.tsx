@@ -125,10 +125,18 @@ export default function ShiftLogin() {
             <View style={styles.logoBox}>
               <Ionicons name="shield-checkmark" size={26} color={colors.onBrand} />
             </View>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.brandTitle}>SPHR SECURITY LOG</Text>
               <Text style={styles.brandSub}>Night Patrol · Shift Start</Text>
             </View>
+            <Pressable
+              testID="share-app-button"
+              onPress={() => router.push("/share")}
+              hitSlop={8}
+              style={styles.shareBtn}
+            >
+              <Ionicons name="qr-code" size={22} color={colors.brand} />
+            </Pressable>
           </View>
 
           <Text style={styles.sectionLabel}>GUARD DETAILS</Text>
@@ -288,6 +296,14 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: radius.md,
     backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shareBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceTertiary,
     alignItems: "center",
     justifyContent: "center",
   },
