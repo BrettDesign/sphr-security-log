@@ -1,6 +1,10 @@
 // @ts-nocheck
-// Web-only "Add to Home Screen" hint. Renders nothing on native or once the
-// app is already installed (standalone). Dismissal is remembered locally.
+// Web-only "Install app" banner.
+// - Android/Chrome: shows a one-tap "Install" button that fires the native
+//   install prompt (drops the app + launcher icon on the phone).
+// - iOS/Safari: Apple provides no install API, so we show the exact manual
+//   "Share → Add to Home Screen" step instead.
+// Renders nothing on native or once the app is already installed.
 import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,32 +27,33 @@ function isIOS(): boolean {
 export function InstallBanner() {
   const [visible, setVisible] = useState(false);
   const [ios, setIos] = useState(false);
-  const [deferred, setDeferred] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
+  const [showIosHelp, setShowIosHelp] = useState(false);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
     if (isStandalone()) return;
 
     let mounted = true;
+    const w = window as any;
+
     (async () => {
       const dismissed = await storage.getItem<boolean>(DISMISS_KEY, false);
       if (!mounted || dismissed) return;
       setIos(isIOS());
+      setCanInstall(Boolean(w.__sphrInstallPrompt));
       setVisible(true);
     })();
 
-    const onBIP = (e: any) => {
-      e.preventDefault();
-      setDeferred(e);
-    };
-    window.addEventListener("beforeinstallprompt", onBIP);
+    const onInstallable = () => setCanInstall(true);
     const onInstalled = () => setVisible(false);
-    window.addEventListener("appinstalled", onInstalled);
+    window.addEventListener("sphr-installable", onInstallable);
+    window.addEventListener("sphr-installed", onInstalled);
 
     return () => {
       mounted = false;
-      window.removeEventListener("beforeinstallprompt", onBIP);
-      window.removeEventListener("appinstalled", onInstalled);
+      window.removeEventListener("sphr-installable", onInstallable);
+      window.removeEventListener("sphr-installed", onInstalled);
     };
   }, []);
 
@@ -58,45 +63,65 @@ export function InstallBanner() {
   };
 
   const install = async () => {
-    if (deferred) {
-      deferred.prompt();
+    const w = window as any;
+    const prompt = w.__sphrInstallPrompt;
+    if (prompt) {
+      prompt.prompt();
       try {
-        await deferred.userChoice;
+        const choice = await prompt.userChoice;
+        if (choice?.outcome === "accepted") setVisible(false);
       } catch {}
-      setDeferred(null);
-      setVisible(false);
+      w.__sphrInstallPrompt = null;
+      setCanInstall(false);
+      return;
     }
+    // No prompt available (iOS, or criteria not met yet) → show guidance.
+    setShowIosHelp(true);
   };
 
   if (!visible) return null;
 
+  // ----- iOS layout: instruction only (Apple blocks auto-install) -----
+  if (ios) {
+    return (
+      <View style={styles.bar} testID="install-banner">
+        <View style={styles.iconBox}>
+          <Ionicons name="phone-portrait" size={18} color={colors.onBrand} />
+        </View>
+        <View style={styles.textWrap}>
+          <Text style={styles.title}>Install SPHR</Text>
+          <Text style={styles.sub} numberOfLines={2}>
+            Tap the Share icon below, then “Add to Home Screen”.
+          </Text>
+        </View>
+        <Ionicons name="arrow-down" size={20} color={colors.brand} />
+        <Pressable testID="install-banner-dismiss" onPress={dismiss} hitSlop={10} style={styles.close}>
+          <Ionicons name="close" size={18} color={colors.onSurfaceSecondary} />
+        </Pressable>
+      </View>
+    );
+  }
+
+  // ----- Android / Chrome layout: one-tap install -----
   return (
     <View style={styles.bar} testID="install-banner">
       <View style={styles.iconBox}>
-        <Ionicons name="phone-portrait" size={18} color={colors.onBrand} />
+        <Ionicons name="download" size={18} color={colors.onBrand} />
       </View>
       <View style={styles.textWrap}>
         <Text style={styles.title}>Install SPHR on your phone</Text>
-        {ios ? (
-          <Text style={styles.sub} numberOfLines={2}>
-            Tap the Share icon, then “Add to Home Screen”.
-          </Text>
-        ) : deferred ? (
-          <Text style={styles.sub} numberOfLines={1}>
-            Add it to your home screen for one-tap access.
-          </Text>
-        ) : (
-          <Text style={styles.sub} numberOfLines={2}>
-            Open the browser menu (⋮), then “Add to Home screen”.
-          </Text>
-        )}
+        <Text style={styles.sub} numberOfLines={2}>
+          {canInstall
+            ? "Tap Install to add the app and icon to your home screen."
+            : showIosHelp
+            ? "Open the browser menu (⋮), then “Install app” / “Add to Home screen”."
+            : "Add it to your home screen for one-tap access."}
+        </Text>
       </View>
 
-      {!ios && deferred ? (
-        <Pressable testID="install-banner-install" onPress={install} style={styles.cta}>
-          <Text style={styles.ctaText}>Install</Text>
-        </Pressable>
-      ) : null}
+      <Pressable testID="install-banner-install" onPress={install} style={styles.cta}>
+        <Text style={styles.ctaText}>Install</Text>
+      </Pressable>
 
       <Pressable testID="install-banner-dismiss" onPress={dismiss} hitSlop={10} style={styles.close}>
         <Ionicons name="close" size={18} color={colors.onSurfaceSecondary} />

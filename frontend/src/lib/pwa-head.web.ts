@@ -48,4 +48,20 @@ export function setupPwaHead(): void {
     if (document.readyState === "complete") reg();
     else window.addEventListener("load", reg);
   }
+
+  // Capture the Android/Chrome install prompt globally (it can fire before the
+  // React banner mounts). Stash it so the banner can trigger a one-tap install.
+  const w = window as any;
+  if (!w.__sphrInstallHooked) {
+    w.__sphrInstallHooked = true;
+    window.addEventListener("beforeinstallprompt", (e: any) => {
+      e.preventDefault();
+      w.__sphrInstallPrompt = e;
+      window.dispatchEvent(new Event("sphr-installable"));
+    });
+    window.addEventListener("appinstalled", () => {
+      w.__sphrInstallPrompt = null;
+      window.dispatchEvent(new Event("sphr-installed"));
+    });
+  }
 }
