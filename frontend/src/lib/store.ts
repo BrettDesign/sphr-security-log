@@ -54,15 +54,29 @@ function toReport(shift: Shift): Report {
 }
 
 // Best-effort sync. Returns true if the report reached the backend.
+// IMPORTANT: never write the passed-in (possibly stale) snapshot back to
+// storage — a slow sync could otherwise clobber newer entries added in the
+// meantime. We re-read the latest shift and only flip the `synced` flag.
 export async function syncShift(shift: Shift): Promise<boolean> {
   try {
     await api.saveReport(toReport(shift));
-    const updated = { ...shift, synced: true };
-    await saveShift(updated);
+    const current = await getShift();
+    if (
+      current &&
+      current.id === shift.id &&
+      current.entries.length === shift.entries.length
+    ) {
+      // Everything that's stored has now been synced.
+      await saveShift({ ...current, synced: true });
+    }
+    // If newer entries were added while syncing, leave them marked unsynced;
+    // their own syncShift call will reconcile.
     return true;
   } catch {
-    const updated = { ...shift, synced: false };
-    await saveShift(updated);
+    const current = await getShift();
+    if (current && current.id === shift.id) {
+      await saveShift({ ...current, synced: false });
+    }
     return false;
   }
 }
