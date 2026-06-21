@@ -32,8 +32,8 @@ export async function getShift(): Promise<Shift | null> {
   }
 }
 
-export async function saveShift(shift: Shift): Promise<void> {
-  await storage.setItem(SHIFT_KEY, JSON.stringify(shift));
+export async function saveShift(shift: Shift): Promise<boolean> {
+  return storage.setItem(SHIFT_KEY, JSON.stringify(shift));
 }
 
 export async function clearShift(): Promise<void> {

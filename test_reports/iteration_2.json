@@ -1,0 +1,43 @@
+{
+  "summary": "PRIMARY BUG RETEST PASSED. Verified end-to-end that patrol entries WITH a photo attached now save reliably and appear on the Patrol Dashboard. Backend: 6/6 pytest cases pass (managers GET/POST/DELETE, reports upsert+update, GET single+list+404, NEW base64 photo data URI round-trip). Frontend (mobile 390x844): logged in as SG-204 / John Smith, selected manager 'Zachary', then added 3 patrol entries — (1) 'Villa 8' WITH photo, (2) 'Pool Area' text-only, (3) 'Safari Tent 3' WITH photo. All 3 appear as entry-card-0/1/2 on dashboard; entries 0 & 2 display the 'Photo' meta pill; entry 1 does NOT. After full page reload, all 3 entries still present (AsyncStorage/IndexedDB persistence confirmed). After backend sync, sync-status-text flips to 'Synced' (green pill). Backend logs show multiple successful 'POST /api/reports HTTP/1.1 200 OK' calls. GPS button on web safely no-ops (permission flow does not block save). expo-image-manipulator + hidden file-input flow on web works: shrinkToBase64 produces a JPEG data URI small enough to fit AsyncStorage, so the photo entry persists (vs prior bug where multi-MB base64 silently overflowed storage).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/managers, POST /api/reports", "issue": "Returns 200 OK; conventionally 201 Created would be more correct (non-blocking, unchanged from iter_1)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "global", "issue": "Console warning: 'Animated: useNativeDriver is not supported' on web — cosmetic, expected on Expo web."},
+      {"component": "expo packages", "issue": "Expo doctor reports version drift: expo@54.0.34 (expected ~54.0.35), expo-font@14.0.11 (~14.0.12), expo-router@6.0.23 (~6.0.24). Non-blocking but main agent should consider `expo install --check` to align."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sphr_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "No fix required — primary bug (photo-attached entries failing to save / list) is resolved. Confirmed via UI: photo entry persisted, listed with Photo pill, survived reload, and reached backend (200 OK).",
+    "Optional: bump Expo SDK package patch versions to silence the doctor warnings (expo, expo-font, expo-router).",
+    "Optional: return 201 Created from POST /api/managers and POST /api/reports."
+  ],
+  "critical_code_review_comments": [
+    "shrinkToBase64 in log-entry.tsx correctly bounds image size: resize to max 1024px wide + JPEG compress 0.4 -> well within AsyncStorage/localStorage caps.",
+    "saveShift now returns a boolean and log-entry surfaces an error toast on failure ('phone storage is full…') — good defensive UX.",
+    "syncShift no longer writes the passed-in stale snapshot back: it re-reads current storage and only flips `synced` when entry count matches, which is the right fix for the 'newer entries clobbered by slow sync' regression.",
+    "Backend Report model preserves photo as a string and round-trips a data:image/jpeg;base64,... payload (verified by new test_report_with_base64_photo_persists).",
+    "All interactive elements have testID. Hidden <input type=file> behind photo-button works with Playwright file_chooser API."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sphr_api.py — updated seeded-managers assertion to current seed list ['Zachary','Brett','Clarke','Margi','Mel'] and added test_report_with_base64_photo_persists."
+  ],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "100% (all flows in the review request)"},
+  "seed_data_creation": "Created 3 TEST_ reports via backend tests (TEST_SG-204 / TEST_John Smith) and 3 in-app patrol entries under the real SG-204 / John Smith shift via UI. No DELETE endpoint exists for reports; TEST_ reports accumulate in the DB.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend URL = EXPO_PUBLIC_BACKEND_URL. Seed managers are now ['Zachary','Brett','Clarke','Margi','Mel'] (no more 'Duty Manager'/'Resort Manager' — that's why iter_1's seed check needed updating). Photo flow on web: tap photo-button triggers a hidden file input — use page.expect_file_chooser() + set_files(); shrinkToBase64 needs ~2s after set_files for canvas resize/compress to complete before save. Storage on web uses AsyncStorage's IndexedDB shim (NOT raw localStorage) so capacity is much larger than the 5MB localStorage limit referenced in the bug write-up; the compression fix still matters for native Android (~2MB per AsyncStorage item).",
+  "rca_of_issue": "Original bug: patrol entries with attached photos silently failed to save because raw camera images yielded multi-MB base64 strings that exceeded per-item storage caps (Android AsyncStorage ~2MB; web localStorage ~5MB). The setItem call threw / returned false, the new entry never persisted, and the dashboard re-read the prior (entry-less) snapshot — making it look like 'only the first entry saves' or 'no entries save'. Fixes verified in this iteration: (1) expo-image-manipulator resizes to max 1024px width and JPEG-compresses at 0.4 (shrinkToBase64) producing a ~tens-of-KB data URI; (2) saveShift returns a boolean and log-entry shows a 'phone storage is full' toast on failure instead of pretending success; (3) syncShift re-reads latest storage before flipping synced flag so a slow network can't clobber newer entries. Reproduction (now NOT reproducible): 3 entries (2 with photos) added in succession all persisted and listed; survived a full page reload; backend received the reports (POST /api/reports -> 200) and dashboard sync-status-text shows 'Synced'."
+}

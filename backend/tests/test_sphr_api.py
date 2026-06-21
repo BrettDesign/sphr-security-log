@@ -22,8 +22,9 @@ class TestManagers:
         data = r.json()
         assert isinstance(data, list)
         names = [m["name"] for m in data]
-        assert "Duty Manager" in names
-        assert "Resort Manager" in names
+        # Seeded managers per current build
+        for expected in ["Zachary", "Brett", "Clarke", "Margi", "Mel"]:
+            assert expected in names, f"Missing seeded manager: {expected}"
         for m in data:
             assert "id" in m and "mobile" in m
             assert "_id" not in m
@@ -110,3 +111,43 @@ class TestReports:
     def test_get_report_unknown_404(self, client):
         r = client.get(f"{BASE_URL}/api/reports/{uuid.uuid4()}", timeout=20)
         assert r.status_code == 404
+
+    def test_report_with_base64_photo_persists(self, client):
+        """PRIMARY BUG retest: report with a base64 photo data URI must save and round-trip."""
+        # Tiny 1x1 px JPEG base64 (compressed style payload like the app sends).
+        photo_b64 = (
+            "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJ"
+            "ChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYa"
+            "KCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIA"
+            "AhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAA"
+            "AAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AKpgD//Z"
+        )
+        rid = str(uuid.uuid4())
+        entry = {
+            "id": str(uuid.uuid4()),
+            "location": "Villa 8",
+            "action": "Photo evidence captured",
+            "timestamp": "2026-01-01T22:30:00Z",
+            "time_label": "22:30",
+            "latitude": None,
+            "longitude": None,
+            "photo": photo_b64,
+        }
+        payload = {
+            "id": rid,
+            "security_number": "TEST_SG-204",
+            "guard_name": "TEST_John Smith",
+            "shift_date": "01/01/2026",
+            "manager_name": "Zachary",
+            "manager_mobile": "0400 000 000",
+            "entries": [entry],
+            "submitted": False,
+        }
+        r = client.post(f"{BASE_URL}/api/reports", json=payload, timeout=30)
+        assert r.status_code == 200, r.text
+        rep = r.json()
+        assert rep["entries"][0]["photo"] == photo_b64
+        # round-trip via GET
+        g = client.get(f"{BASE_URL}/api/reports/{rid}", timeout=20)
+        assert g.status_code == 200
+        assert g.json()["entries"][0]["photo"] == photo_b64

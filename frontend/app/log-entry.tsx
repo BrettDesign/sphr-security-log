@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
 import * as ImagePicker from "expo-image-picker";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as Haptics from "expo-haptics";
 
 import { colors, spacing, radius, font } from "@/src/lib/theme";
@@ -29,6 +30,23 @@ function timeLabel(d: Date): string {
     second: "2-digit",
     hour12: true,
   });
+}
+
+// Resize to max 1024px wide + JPEG compress, returning a small base64 data URI.
+async function shrinkToBase64(uri: string): Promise<string | null> {
+  try {
+    const ctx = ImageManipulator.manipulate(uri);
+    ctx.resize({ width: 1024 });
+    const ref = await ctx.renderAsync();
+    const out = await ref.saveAsync({
+      compress: 0.4,
+      format: SaveFormat.JPEG,
+      base64: true,
+    });
+    return out.base64 ? `data:image/jpeg;base64,${out.base64}` : null;
+  } catch {
+    return null;
+  }
 }
 
 export default function LogEntry() {
@@ -88,24 +106,26 @@ export default function LogEntry() {
         return;
       }
       const r = await ImagePicker.launchImageLibraryAsync({
-        base64: true,
-        quality: 0.5,
+        quality: 1,
         mediaTypes: ["images"],
       });
-      if (!r.canceled && r.assets[0]?.base64) {
-        setPhoto(`data:image/jpeg;base64,${r.assets[0].base64}`);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      }
+      if (!r.canceled && r.assets[0]?.uri) await handlePicked(r.assets[0].uri);
       return;
     }
-    const r = await ImagePicker.launchCameraAsync({
-      base64: true,
-      quality: 0.5,
-    });
-    if (!r.canceled && r.assets[0]?.base64) {
-      setPhoto(`data:image/jpeg;base64,${r.assets[0].base64}`);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    const r = await ImagePicker.launchCameraAsync({ quality: 1 });
+    if (!r.canceled && r.assets[0]?.uri) await handlePicked(r.assets[0].uri);
+  };
+
+  // Resize + compress before storing so a photo is small enough to save
+  // reliably on-device (Android storage caps ~2MB per item; web localStorage ~5MB).
+  const handlePicked = async (uri: string) => {
+    const data = await shrinkToBase64(uri);
+    if (!data) {
+      flash("Couldn't process that photo. Please try again.");
+      return;
     }
+    setPhoto(data);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   };
 
   const toggleVoice = () => {
@@ -157,7 +177,12 @@ export default function LogEntry() {
       photo,
     };
     const updated = { ...shift, entries: [...shift.entries, entry], synced: false };
-    await saveShift(updated);
+    const ok = await saveShift(updated);
+    if (!ok) {
+      setSaving(false);
+      flash("Couldn't save — phone storage is full. Submit the report, then start a fresh shift.");
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
     syncShift(updated);
     router.back();
