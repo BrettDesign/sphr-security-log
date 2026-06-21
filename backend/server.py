@@ -86,8 +86,8 @@ async def root():
 
 @api_router.get("/managers", response_model=List[Manager])
 async def get_managers():
-    docs = await db.managers.find().sort("created_at", 1).to_list(500)
-    return [Manager(**{k: v for k, v in d.items() if k != "_id"}) for d in docs]
+    docs = await db.managers.find({}, {"_id": 0}).sort("created_at", 1).to_list(500)
+    return [Manager(**d) for d in docs]
 
 
 @api_router.post("/managers", response_model=Manager)
@@ -124,16 +124,16 @@ async def upsert_report(payload: ReportCreate):
 
 @api_router.get("/reports", response_model=List[Report])
 async def list_reports():
-    docs = await db.reports.find().sort("created_at", -1).to_list(1000)
-    return [Report(**{k: v for k, v in d.items() if k != "_id"}) for d in docs]
+    docs = await db.reports.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [Report(**d) for d in docs]
 
 
 @api_router.get("/reports/{report_id}", response_model=Report)
 async def get_report(report_id: str):
-    doc = await db.reports.find_one({"id": report_id})
+    doc = await db.reports.find_one({"id": report_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Report not found")
-    return Report(**{k: v for k, v in doc.items() if k != "_id"})
+    return Report(**doc)
 
 
 app.include_router(api_router)
