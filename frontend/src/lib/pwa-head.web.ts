@@ -40,4 +40,12 @@ export function setupPwaHead(): void {
     );
   }
   if (document.title !== "SPHR Security Log") document.title = "SPHR Security Log";
+
+  // Register the service worker — required so Android Chrome offers a real
+  // "Install" (launcher icon that opens fullscreen), and to open offline.
+  if ("serviceWorker" in navigator) {
+    const reg = () => navigator.serviceWorker.register("/sw.js").catch(() => {});
+    if (document.readyState === "complete") reg();
+    else window.addEventListener("load", reg);
+  }
 }

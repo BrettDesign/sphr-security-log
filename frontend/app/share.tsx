@@ -77,7 +77,10 @@ export default function ShareScreen() {
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: insets.bottom + spacing.xl }}>
         <Text style={styles.lead}>
-          Have guards scan this code to open the app, then add it to their home screen.
+          Scanning the code <Text style={styles.leadBold}>opens</Text> the app. To get the
+          launch icon, the guard then taps{" "}
+          <Text style={styles.leadBold}>Install</Text> (Android) or{" "}
+          <Text style={styles.leadBold}>Add to Home Screen</Text> (iPhone) — see steps below.
         </Text>
 
         <View style={styles.qrCard} testID="qr-card">
@@ -162,6 +165,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: spacing.lg,
   },
+  leadBold: { color: colors.brand, fontWeight: "800" },
   qrCard: {
     backgroundColor: colors.surfaceSecondary,
     borderRadius: radius.lg,
