@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { colors } from "@/src/lib/theme";
 import { setupPwaHead } from "@/src/lib/pwa-head";
+import { InstallBanner } from "@/src/components/InstallBanner";
 
 LogBox.ignoreAllLogs(true);
 
@@ -34,6 +35,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="light" />
         <View style={{ flex: 1, backgroundColor: colors.surface }}>
+          <InstallBanner />
           <Stack
             screenOptions={{
               headerShown: false,
