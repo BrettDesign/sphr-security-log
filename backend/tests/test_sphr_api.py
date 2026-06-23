@@ -112,6 +112,79 @@ class TestReports:
         r = client.get(f"{BASE_URL}/api/reports/{uuid.uuid4()}", timeout=20)
         assert r.status_code == 404
 
+    def test_send_report_brevo_email(self, client):
+        """Brevo is activated — send ONE real email and assert {sent:true, pdf_attached:true}.
+
+        Limited to a single call per testing run to avoid spamming dm@sphr.com.au.
+        """
+        rid = str(uuid.uuid4())
+        entry = {
+            "id": str(uuid.uuid4()),
+            "location": "Main Gate",
+            "action": "Automated regression test — please ignore",
+            "timestamp": "2026-01-01T22:00:00Z",
+            "time_label": "22:00",
+            "latitude": -28.0167,
+            "longitude": 153.4000,
+            "photo": None,
+        }
+        door_checks = {a: True for a in [
+            "GM Office", "Back Door", "Glass Doors x2", "Kitchen Door", "Hallway Gate",
+            "Staff Room", "LDNG Dock Gate", "Pool Gates x8", "Pool Bar door",
+            "Pool Bar Shutters", "Keg Room", "Rear Shed rollers", "Rear Shed",
+            "Shed Gates x2", "Pool Room 1", "Pool Room 2", "Kids room", "Arcade room",
+        ]}
+        payload = {
+            "id": rid,
+            "security_number": "TEST_SG-204",
+            "guard_name": "TEST_Automated Regression",
+            "shift_date": "01/01/2026",
+            "manager_name": "Zachary",
+            "manager_mobile": "0400 000 000",
+            "entries": [entry],
+            "door_checks": door_checks,
+            "submitted": True,
+        }
+        r = client.post(f"{BASE_URL}/api/reports/send", json=payload, timeout=60)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body.get("sent") is True
+        assert body.get("pdf_attached") is True
+        assert body.get("recipient") == "dm@sphr.com.au"
+        # Verify the report was also persisted with submitted=True
+        g = client.get(f"{BASE_URL}/api/reports/{rid}", timeout=20)
+        assert g.status_code == 200
+        assert g.json()["submitted"] is True
+
+    def test_report_with_door_checks_persists(self, client):
+        """Door checks dict should round-trip via POST and GET."""
+        rid = str(uuid.uuid4())
+        door_checks = {
+            "GM Office": True,
+            "Back Door": True,
+            "Glass Doors x2": False,
+            "Kitchen Door": True,
+        }
+        payload = {
+            "id": rid,
+            "security_number": "TEST_SG-204",
+            "guard_name": "TEST_John Smith",
+            "shift_date": "01/01/2026",
+            "manager_name": "Zachary",
+            "manager_mobile": "0400 000 000",
+            "entries": [],
+            "door_checks": door_checks,
+            "submitted": False,
+        }
+        r = client.post(f"{BASE_URL}/api/reports", json=payload, timeout=20)
+        assert r.status_code == 200, r.text
+        rep = r.json()
+        assert rep["door_checks"]["GM Office"] is True
+        assert rep["door_checks"]["Glass Doors x2"] is False
+        g = client.get(f"{BASE_URL}/api/reports/{rid}", timeout=20)
+        assert g.status_code == 200
+        assert g.json()["door_checks"]["Kitchen Door"] is True
+
     def test_report_with_base64_photo_persists(self, client):
         """PRIMARY BUG retest: report with a base64 photo data URI must save and round-trip."""
         # Tiny 1x1 px JPEG base64 (compressed style payload like the app sends).
