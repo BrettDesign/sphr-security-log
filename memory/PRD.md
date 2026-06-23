@@ -1,34 +1,28 @@
 # SPHR Security Log — PRD
 
 ## Problem Statement
-Mobile-first night patrol & incident reporting app for resort/holiday park security guards. Replaces handwritten patrol books with a digital system to record incidents, log locations, timestamp entries, capture GPS + photos, dictate by voice, save offline, and submit the nightly report to management by email.
+Mobile-first night patrol & incident reporting PWA for resort/holiday park security guards. Replaces handwritten patrol books: record incidents, log locations, timestamp entries, capture GPS + photos, dictate by voice, complete final door checks, save offline, and email the nightly report (formatted body + PDF) to management.
 
 ## Architecture
-- **Frontend:** Expo Router (stack), React Native, dark "Night Patrol" theme (#101112 surface + #F5A623 amber). Offline-first via AsyncStorage (`@/src/utils/storage`).
-- **Backend:** FastAPI + MongoDB (motor). Routes under `/api`. Managers seeded on startup.
-- **Storage:** Active shift persisted locally; best-effort sync to backend (`POST /api/reports` upsert).
+- Frontend: Expo Router (stack), React Native, dark night-patrol theme (#101112 + amber #F5A623). Offline-first via AsyncStorage (`@/src/utils/storage`). Installable PWA (manifest + service worker + runtime head injection).
+- Backend: FastAPI + MongoDB (motor), routes under /api.
+- Email: Brevo transactional API (ACTIVATED). Sender nightlysecurityinfo@gmail.com → dm@sphr.com.au, HTML body + server-generated PDF (xhtml2pdf).
 
-## User Persona
-Night-shift security guard patrolling resorts/caravan parks/villas; one-handed phone use outdoors in low light.
-
-## Core Requirements (static)
+## Implemented (updated 2026-06-23)
 - Passwordless shift login (Security #, Guard Name, Date)
-- Manager-on-diversion selector (radio cards, add new)
-- Patrol entries: Location, Action Taken, auto timestamp (locks on action entry), GPS, photo, voice-to-text
-- Offline save + backend sync, PDF export, email submit to dm@sphr.com.au
+- Manager-on-diversion selector + add manager (seeded: Zachary, Brett, Clarke, Margi, Mel)
+- Patrol entries: Location, Action Taken, timestamp locks on action entry, GPS capture, photo (compressed via expo-image-manipulator), voice-to-text (web SpeechRecognition / native expo-speech-recognition)
+- Offline save + backend sync (race-safe; never clobbers newer entries)
+- Final Door Checks: 18 areas, tap to tick (green), progress X/18, dashboard card, required-before-submit warning (review/submit-anyway)
+- Summary: stats, FINAL DOOR CHECKS section, PATROL LOG, Export PDF, Submit to DM
+- Submit to DM: backend Brevo send (formatted HTML body + PDF w/ door checks); mail-app fallback if send fails
+- QR / Share screen (install link), PWA install banner (Android one-tap install; iOS Add-to-Home-Screen guidance)
+- Custom SPHR shield app icon + adaptive/splash/favicon/maskable icons
 
-## Implemented (2026-06-21)
-- Shift login + manager selector + add-manager modal
-- Patrol dashboard with sync status, entry feed, empty state
-- Log entry form: location, action, lock-on-action timestamp, GPS capture, camera/library photo (base64), voice-to-text (web SpeechRecognition + native expo-speech-recognition with graceful fallback)
-- Shift summary: stats, entry list, PDF export (expo-print + sharing), submit via expo-mail-composer → mailto fallback, end-shift
-- Backend: managers CRUD, reports upsert/list/get; device permissions in app.json
-- Tested: backend 5/5, all frontend flows pass
+## Integrations
+- Brevo email (key in backend/.env). Recommended next: authenticate sphr.com.au domain in Brevo for deliverability.
 
-## Notes / Limitations
-- Email = device mail app pre-filled (no email service) — per user choice
-- Voice-to-text needs an installed/deployed build (not available in Expo Go); degrades gracefully
-
-## Backlog
-- P1: Report history screen (multiple past shifts), QR checkpoint scanning
-- P2: Incident categories, staff accounts/auth, manager dashboard, panic alert
+## Backlog / Next
+- P1: Management web dashboard to view all submitted reports; report history in-app
+- P1: Verify sphr.com.au domain in Brevo (DNS) + switch sender to nightlysecurityinfo@sphr.com.au
+- P2: Incident categories, QR checkpoint scanning, staff accounts, panic alert
