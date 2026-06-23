@@ -34,6 +34,7 @@ export default function Summary() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [toast, setToast] = useState("");
   const [endModal, setEndModal] = useState(false);
+  const [warnModal, setWarnModal] = useState(false);
 
   const flash = (m: string) => {
     setToast(m);
@@ -65,7 +66,20 @@ export default function Summary() {
     setPdfLoading(false);
   };
 
-  const onSubmit = async () => {
+  const onSubmit = () => {
+    if (shift.entries.length === 0) {
+      flash("No patrol entries to submit.");
+      return;
+    }
+    const done = DOOR_CHECK_AREAS.filter((a) => (shift.door_checks || {})[a]).length;
+    if (done < DOOR_CHECK_AREAS.length) {
+      setWarnModal(true);
+      return;
+    }
+    performSubmit();
+  };
+
+  const performSubmit = async () => {
     if (shift.entries.length === 0) {
       flash("No patrol entries to submit.");
       return;
@@ -216,6 +230,43 @@ export default function Summary() {
           />
         </View>
       </View>
+
+      <Modal visible={warnModal} transparent animationType="fade" onRequestClose={() => setWarnModal(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Door checks incomplete</Text>
+            <Text style={styles.modalBody}>
+              {DOOR_CHECK_AREAS.length -
+                DOOR_CHECK_AREAS.filter((a) => (shift.door_checks || {})[a]).length}{" "}
+              of {DOOR_CHECK_AREAS.length} final door check areas are not yet ticked.
+              Please complete all door checks before submitting the nightly report.
+            </Text>
+            <View style={{ flexDirection: "row", gap: spacing.md, marginTop: spacing.lg }}>
+              <View style={{ flex: 1 }}>
+                <AppButton
+                  label="Submit Anyway"
+                  variant="secondary"
+                  testID="submit-anyway-button"
+                  onPress={() => {
+                    setWarnModal(false);
+                    performSubmit();
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppButton
+                  label="Review Checks"
+                  testID="review-checks-button"
+                  onPress={() => {
+                    setWarnModal(false);
+                    router.push("/door-checks");
+                  }}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={endModal} transparent animationType="fade" onRequestClose={() => setEndModal(false)}>
         <View style={styles.modalBackdrop}>
