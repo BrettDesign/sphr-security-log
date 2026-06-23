@@ -54,4 +54,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify(report),
     }),
+  sendReport: (report: Report) =>
+    req<{ sent: boolean; recipient: string; pdf_attached: boolean; message: string }>(
+      "/reports/send",
+      {
+        method: "POST",
+        body: JSON.stringify(report),
+      }
+    ),
 };

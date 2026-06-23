@@ -15,6 +15,7 @@ import { colors, spacing, radius, font } from "@/src/lib/theme";
 import { AppButton, Toast } from "@/src/components/ui";
 import { getShift, saveShift, syncShift, clearShift, Shift } from "@/src/lib/store";
 import { exportPdf, submitReport, DM_EMAIL } from "@/src/lib/report";
+import { api } from "@/src/lib/api";
 
 function shiftDuration(startedAt: string): string {
   const start = new Date(startedAt).getTime();
@@ -69,19 +70,30 @@ export default function Summary() {
       return;
     }
     setSubmitLoading(true);
+    const updated = { ...shift, submitted: true };
+    await saveShift(updated);
+    setShift(updated);
     try {
-      const updated = { ...shift, submitted: true };
-      await saveShift(updated);
-      syncShift(updated);
-      const result = await submitReport(updated);
-      setShift(updated);
-      flash(
-        result === "composer"
-          ? "Mail app opened with report attached."
-          : `Mail app opened — sending to ${DM_EMAIL}.`
-      );
-    } catch {
-      flash("Could not open mail app.");
+      // Universal server-side send (works on every device, formatted body + PDF).
+      const res = await api.sendReport({
+        id: updated.id,
+        security_number: updated.security_number,
+        guard_name: updated.guard_name,
+        shift_date: updated.shift_date,
+        manager_name: updated.manager_name,
+        manager_mobile: updated.manager_mobile,
+        entries: updated.entries,
+        submitted: true,
+      });
+      flash(res.message || `Report emailed to ${DM_EMAIL}`);
+    } catch (e) {
+      // Fallback: open the device mail app pre-filled.
+      try {
+        await submitReport(updated);
+        flash("Couldn't auto-send — opened your mail app as a fallback.");
+      } catch {
+        flash("Could not send the report. Check your connection.");
+      }
     }
     setSubmitLoading(false);
   };
