@@ -1,0 +1,21 @@
+// Canonical list of "Final Door Checks" areas (order matches the printed sheet).
+export const DOOR_CHECK_AREAS: string[] = [
+  "GM Office",
+  "Back Door",
+  "Glass Doors x2",
+  "Kitchen Door",
+  "Hallway Gate",
+  "Staff Room",
+  "LDNG Dock Gate",
+  "Pool Gates x8",
+  "Pool Bar door",
+  "Pool Bar Shutters",
+  "Keg Room",
+  "Rear Shed rollers",
+  "Rear Shed",
+  "Shed Gates x2",
+  "Pool Room 1",
+  "Pool Room 2",
+  "Kids room",
+  "Arcade room",
+];

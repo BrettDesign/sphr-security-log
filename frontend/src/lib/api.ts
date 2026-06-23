@@ -27,6 +27,7 @@ export type Report = {
   manager_mobile?: string | null;
   entries: PatrolEntry[];
   submitted: boolean;
+  door_checks?: Record<string, boolean>;
 };
 
 async function req<T>(path: string, options?: RequestInit): Promise<T> {

@@ -16,6 +16,7 @@ import { colors, spacing, radius, font } from "@/src/lib/theme";
 import { AppButton } from "@/src/components/ui";
 import { getShift, syncShift, Shift } from "@/src/lib/store";
 import { PatrolEntry } from "@/src/lib/api";
+import { DOOR_CHECK_AREAS } from "@/src/lib/doorChecks";
 
 const NIGHT_IMG =
   "https://images.unsplash.com/photo-1501418611786-e29f9929fe03?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzN8MHwxfHNlYXJjaHwxfHxuaWdodCUyMHNreSUyMG1vb24lMjBzdGFyc3xlbnwwfHx8fDE3ODIwMTUyMDV8MA&ixlib=rb-4.1.0&q=85";
@@ -134,6 +135,24 @@ export default function Dashboard() {
           </View>
         </View>
       </View>
+
+      <Pressable
+        testID="door-checks-nav"
+        onPress={() => router.push("/door-checks")}
+        style={styles.doorCard}
+      >
+        <View style={styles.doorIcon}>
+          <Ionicons name="lock-closed" size={18} color={colors.brand} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.doorTitle}>Final Door Checks</Text>
+          <Text style={styles.doorSub}>
+            {DOOR_CHECK_AREAS.filter((a) => (shift.door_checks || {})[a]).length}/
+            {DOOR_CHECK_AREAS.length} areas secured
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.onSurfaceSecondary} />
+      </Pressable>
 
       <FlatList
         data={shift.entries}
@@ -289,4 +308,28 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
+  doorCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
+  },
+  doorIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.brandTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  doorTitle: { color: colors.onSurface, fontSize: font.lg, fontWeight: "800" },
+  doorSub: { color: colors.onSurfaceSecondary, fontSize: font.base, marginTop: 2 },
 });

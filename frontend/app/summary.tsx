@@ -16,6 +16,7 @@ import { AppButton, Toast } from "@/src/components/ui";
 import { getShift, saveShift, syncShift, clearShift, Shift } from "@/src/lib/store";
 import { exportPdf, submitReport, DM_EMAIL } from "@/src/lib/report";
 import { api } from "@/src/lib/api";
+import { DOOR_CHECK_AREAS } from "@/src/lib/doorChecks";
 
 function shiftDuration(startedAt: string): string {
   const start = new Date(startedAt).getTime();
@@ -83,6 +84,7 @@ export default function Summary() {
         manager_name: updated.manager_name,
         manager_mobile: updated.manager_mobile,
         entries: updated.entries,
+        door_checks: updated.door_checks || {},
         submitted: true,
       });
       flash(res.message || `Report emailed to ${DM_EMAIL}`);
@@ -144,6 +146,31 @@ export default function Summary() {
               label="Sync"
               value={shift.synced ? "Synced to management" : "Saved offline"}
             />
+          </View>
+        </View>
+
+        <View style={styles.doorSummary}>
+          <View style={styles.doorSummaryHead}>
+            <Text style={styles.listHeader}>FINAL DOOR CHECKS</Text>
+            <Text style={styles.doorSummaryCount}>
+              {DOOR_CHECK_AREAS.filter((a) => (shift.door_checks || {})[a]).length}/
+              {DOOR_CHECK_AREAS.length}
+            </Text>
+          </View>
+          <View style={styles.doorGrid}>
+            {DOOR_CHECK_AREAS.map((area) => {
+              const done = !!(shift.door_checks || {})[area];
+              return (
+                <View key={area} style={styles.doorChip} testID={`summary-door-${area}`}>
+                  <Ionicons
+                    name={done ? "checkmark-circle" : "ellipse-outline"}
+                    size={16}
+                    color={done ? colors.success : colors.onSurfaceSecondary}
+                  />
+                  <Text style={[styles.doorChipText, done && styles.doorChipDone]}>{area}</Text>
+                </View>
+              );
+            })}
           </View>
         </View>
 
@@ -266,6 +293,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   emptyText: { color: colors.onSurfaceSecondary, fontSize: font.base },
+  doorSummary: { marginTop: spacing.sm },
+  doorSummaryHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  doorSummaryCount: { color: colors.brand, fontSize: font.lg, fontWeight: "900", marginBottom: spacing.md },
+  doorGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  doorChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  doorChipText: { color: colors.onSurfaceSecondary, fontSize: font.sm, fontWeight: "600" },
+  doorChipDone: { color: colors.onSurface },
   entryRow: {
     flexDirection: "row",
     gap: spacing.md,

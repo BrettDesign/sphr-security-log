@@ -16,6 +16,7 @@ export type Shift = {
   submitted: boolean;
   started_at: string;
   synced: boolean;
+  door_checks?: Record<string, boolean>;
 };
 
 export function uid(): string {
@@ -50,6 +51,7 @@ function toReport(shift: Shift): Report {
     manager_mobile: shift.manager_mobile,
     entries: shift.entries,
     submitted: shift.submitted,
+    door_checks: shift.door_checks || {},
   };
 }
 
