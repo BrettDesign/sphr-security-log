@@ -2,8 +2,12 @@
    Its main job is to make the app installable (Android Chrome requires a
    service worker with a fetch handler to offer "Install" with a real launcher
    icon). It also lets the app shell open when offline. */
-const CACHE = "sphr-shell-v1";
+const CACHE = "sphr-shell-v2";
 const SHELL = ["/"];
+
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") self.skipWaiting();
+});
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
