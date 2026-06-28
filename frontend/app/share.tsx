@@ -21,7 +21,8 @@ function getInstallUrl(): string {
   if (Platform.OS === "web" && typeof window !== "undefined") {
     return window.location.origin;
   }
-  return (process.env.EXPO_PUBLIC_BACKEND_URL || "").replace(/\/$/, "");
+  const base = process.env.EXPO_PUBLIC_BACKEND_URL as string;
+  return base.replace(/\/$/, "");
 }
 
 export default function ShareScreen() {
