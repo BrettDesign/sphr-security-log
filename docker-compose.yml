@@ -1,0 +1,44 @@
+# SPHR Security Log — full stack in one command:  docker compose up -d --build
+#
+# Brings up: MongoDB + FastAPI backend + the built web PWA served by Nginx
+# (Nginx also reverse-proxies /api/* to the backend, so the whole app is on port 80).
+#
+# 1) Copy .env.example to .env and fill in your Brevo values.
+# 2) Run:  docker compose up -d --build
+# 3) Open: http://your-server-ip/   (put HTTPS in front for production / PWA install)
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      - MONGO_URL=mongodb://mongo:27017
+      - DB_NAME=sphr_security
+      - BREVO_API_KEY=${BREVO_API_KEY}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME}
+      - DM_RECIPIENT_EMAIL=${DM_RECIPIENT_EMAIL}
+    depends_on:
+      - mongo
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Empty = the PWA calls /api on the same origin (Nginx proxies it to backend).
+        # Leave empty for this single-server setup.
+        EXPO_PUBLIC_BACKEND_URL: ""
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
