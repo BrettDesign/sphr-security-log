@@ -48,6 +48,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ name, mobile }),
     }),
+  updateManager: (id: string, name: string, mobile: string) =>
+    req<Manager>(`/managers/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ name, mobile }),
+    }),
   deleteManager: (id: string) =>
     req<{ deleted: string }>(`/managers/${id}`, { method: "DELETE" }),
   saveReport: (report: Report) =>

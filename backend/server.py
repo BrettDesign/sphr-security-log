@@ -116,6 +116,19 @@ async def create_manager(payload: ManagerCreate):
     return mgr
 
 
+@api_router.put("/managers/{manager_id}", response_model=Manager)
+async def update_manager(manager_id: str, payload: ManagerCreate):
+    existing = await db.managers.find_one({"id": manager_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Manager not found")
+    await db.managers.update_one(
+        {"id": manager_id},
+        {"$set": {"name": payload.name, "mobile": payload.mobile}},
+    )
+    doc = await db.managers.find_one({"id": manager_id}, {"_id": 0})
+    return Manager(**doc)
+
+
 @api_router.delete("/managers/{manager_id}")
 async def delete_manager(manager_id: str):
     res = await db.managers.delete_one({"id": manager_id})

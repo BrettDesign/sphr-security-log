@@ -39,6 +39,7 @@ export default function ShiftLogin() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [modal, setModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [mName, setMName] = useState("");
   const [mMobile, setMMobile] = useState("");
 
@@ -71,21 +72,42 @@ export default function ShiftLogin() {
     }, [loadManagers, router])
   );
 
-  const addManager = async () => {
+  const openAddManager = () => {
+    setEditingId(null);
+    setMName("");
+    setMMobile("");
+    setModal(true);
+  };
+
+  const openEditManager = (m: Manager) => {
+    setEditingId(m.id);
+    setMName(m.name);
+    setMMobile(m.mobile);
+    setModal(true);
+    Haptics.selectionAsync().catch(() => {});
+  };
+
+  const saveManager = async () => {
     if (!mName.trim() || !mMobile.trim()) {
       flash("Enter manager name and mobile.");
       return;
     }
     try {
-      const created = await api.addManager(mName.trim(), mMobile.trim());
-      setManagers((prev) => [...prev, created]);
-      setSelected(created.id);
+      if (editingId) {
+        const updated = await api.updateManager(editingId, mName.trim(), mMobile.trim());
+        setManagers((prev) => prev.map((m) => (m.id === editingId ? updated : m)));
+      } else {
+        const created = await api.addManager(mName.trim(), mMobile.trim());
+        setManagers((prev) => [...prev, created]);
+        setSelected(created.id);
+      }
       setModal(false);
+      setEditingId(null);
       setMName("");
       setMMobile("");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch {
-      flash("Could not add manager. Check connection.");
+      flash(editingId ? "Could not update manager." : "Could not add manager. Check connection.");
     }
   };
 
@@ -166,7 +188,7 @@ export default function ShiftLogin() {
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionLabel}>MANAGER ON DIVERSION</Text>
             <Pressable
-              onPress={() => setModal(true)}
+              onPress={openAddManager}
               testID="open-add-manager-button"
               style={styles.addLink}
               hitSlop={8}
@@ -202,6 +224,14 @@ export default function ShiftLogin() {
                     <Text style={styles.managerName}>{m.name}</Text>
                     <Text style={styles.managerMobile}>{m.mobile}</Text>
                   </View>
+                  <Pressable
+                    testID={`edit-manager-${m.id}`}
+                    onPress={() => openEditManager(m)}
+                    hitSlop={10}
+                    style={styles.editBtn}
+                  >
+                    <Ionicons name="create-outline" size={20} color={colors.brand} />
+                  </Pressable>
                   <Ionicons
                     name="call"
                     size={18}
@@ -226,7 +256,7 @@ export default function ShiftLogin() {
       <Modal visible={modal} transparent animationType="fade" onRequestClose={() => setModal(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Add Manager</Text>
+            <Text style={styles.modalTitle}>{editingId ? "Edit Manager" : "Add Manager"}</Text>
             <Field
               label="Name"
               placeholder="e.g. Duty Manager"
@@ -255,7 +285,7 @@ export default function ShiftLogin() {
                 <AppButton
                   label="Save"
                   testID="save-manager-button"
-                  onPress={addManager}
+                  onPress={saveManager}
                 />
               </View>
             </View>
@@ -325,6 +355,15 @@ const styles = StyleSheet.create({
   },
   addLink: { flexDirection: "row", alignItems: "center", gap: 4 },
   addLinkText: { color: colors.brand, fontWeight: "800", fontSize: font.base },
+  editBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.sm,
+  },
   field: { marginBottom: spacing.md },
   fieldLabel: {
     color: colors.onSurfaceSecondary,
