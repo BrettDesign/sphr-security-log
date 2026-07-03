@@ -20,7 +20,7 @@ import { colors, spacing, radius, font } from "@/src/lib/theme";
 import { AppButton, Toast } from "@/src/components/ui";
 import { Manager } from "@/src/lib/api";
 import { api } from "@/src/lib/api";
-import { getShift, saveShift, uid, fetchManagers, Shift } from "@/src/lib/store";
+import { getShift, saveShift, clearShift, uid, fetchManagers, Shift } from "@/src/lib/store";
 
 function todayLabel(): string {
   const d = new Date();
@@ -42,6 +42,7 @@ export default function ShiftLogin() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [mName, setMName] = useState("");
   const [mMobile, setMMobile] = useState("");
+  const [resumeShift, setResumeShift] = useState<Shift | null>(null);
 
   const flash = (m: string) => {
     setToast(m);
@@ -60,9 +61,10 @@ export default function ShiftLogin() {
       let active = true;
       (async () => {
         const existing = await getShift();
-        if (existing && active) {
-          router.replace("/dashboard");
-          return;
+        if (existing && !existing.submitted && active) {
+          // Do NOT silently resume — a handed-over phone may hold a previous
+          // guard's shift. Ask the current user whether to resume or start fresh.
+          setResumeShift(existing);
         }
         loadManagers();
       })();
@@ -71,6 +73,17 @@ export default function ShiftLogin() {
       };
     }, [loadManagers, router])
   );
+
+  const resumeExisting = () => {
+    setResumeShift(null);
+    router.replace("/dashboard");
+  };
+
+  const discardAndStartNew = async () => {
+    await clearShift();
+    setResumeShift(null);
+    Haptics.selectionAsync().catch(() => {});
+  };
 
   const openAddManager = () => {
     setEditingId(null);
@@ -253,6 +266,51 @@ export default function ShiftLogin() {
         </View>
       </KeyboardAvoidingView>
 
+      <Modal
+        visible={!!resumeShift}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setResumeShift(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Unfinished shift found</Text>
+            <Text style={styles.resumeBody}>
+              There is an unsubmitted shift saved on this device:
+            </Text>
+            {resumeShift ? (
+              <View style={styles.resumeInfo}>
+                <ResumeRow icon="person" text={resumeShift.guard_name || "—"} />
+                <ResumeRow icon="calendar" text={resumeShift.shift_date || "—"} />
+                <ResumeRow
+                  icon="list"
+                  text={`${resumeShift.entries?.length ?? 0} patrol ${
+                    (resumeShift.entries?.length ?? 0) === 1 ? "entry" : "entries"
+                  }`}
+                />
+              </View>
+            ) : null}
+            <Text style={styles.resumeHint}>
+              Resume it, or start a new shift (this discards the saved one).
+            </Text>
+            <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
+              <AppButton
+                label="Resume Shift"
+                testID="resume-shift-button"
+                onPress={resumeExisting}
+                icon={<Ionicons name="play" size={18} color={colors.onBrand} />}
+              />
+              <AppButton
+                label="Start New Shift"
+                variant="secondary"
+                testID="discard-shift-button"
+                onPress={discardAndStartNew}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={modal} transparent animationType="fade" onRequestClose={() => setModal(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -309,6 +367,15 @@ function Field(props: any) {
         placeholderTextColor={colors.onSurfaceSecondary}
         style={styles.input}
       />
+    </View>
+  );
+}
+
+function ResumeRow({ icon, text }: { icon: any; text: string }) {
+  return (
+    <View style={styles.resumeRow}>
+      <Ionicons name={icon} size={18} color={colors.brand} />
+      <Text style={styles.resumeRowText}>{text}</Text>
     </View>
   );
 }
@@ -440,5 +507,19 @@ const styles = StyleSheet.create({
     fontSize: font.xl,
     fontWeight: "800",
     marginBottom: spacing.lg,
+  },
+  resumeBody: { color: colors.onSurfaceSecondary, fontSize: font.base, marginBottom: spacing.md },
+  resumeInfo: {
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  resumeRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  resumeRowText: { color: colors.onSurface, fontSize: font.lg, fontWeight: "700" },
+  resumeHint: {
+    color: colors.onSurfaceSecondary,
+    fontSize: font.sm,
+    marginTop: spacing.md,
   },
 });
