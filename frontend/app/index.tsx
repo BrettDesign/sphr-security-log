@@ -28,6 +28,29 @@ function todayLabel(): string {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
+// Parse a "DD/MM/YYYY" label into a Date (local, midnight). Returns null if unparseable.
+function parseShiftDate(label?: string | null): Date | null {
+  if (!label) return null;
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(label.trim());
+  if (!m) return null;
+  const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// If the saved shift is NOT from today, return a human label ("from last night",
+// "from 2 days ago", or "from DD/MM/YYYY"). Returns null when it IS today's shift.
+function staleLabel(shiftDate?: string | null): string | null {
+  const shift = parseShiftDate(shiftDate);
+  if (!shift) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dayMs = 24 * 60 * 60 * 1000;
+  const diffDays = Math.round((today.getTime() - shift.getTime()) / dayMs);
+  if (diffDays <= 0) return null; // today (or a future-dated shift) — not stale
+  if (diffDays === 1) return "from last night";
+  return `from ${diffDays} days ago (${shiftDate})`;
+}
+
 export default function ShiftLogin() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -274,39 +297,58 @@ export default function ShiftLogin() {
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Unfinished shift found</Text>
-            <Text style={styles.resumeBody}>
-              There is an unsubmitted shift saved on this device:
-            </Text>
-            {resumeShift ? (
-              <View style={styles.resumeInfo}>
-                <ResumeRow icon="person" text={resumeShift.guard_name || "—"} />
-                <ResumeRow icon="calendar" text={resumeShift.shift_date || "—"} />
-                <ResumeRow
-                  icon="list"
-                  text={`${resumeShift.entries?.length ?? 0} patrol ${
-                    (resumeShift.entries?.length ?? 0) === 1 ? "entry" : "entries"
-                  }`}
-                />
-              </View>
-            ) : null}
-            <Text style={styles.resumeHint}>
-              Resume it, or start a new shift (this discards the saved one).
-            </Text>
-            <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
-              <AppButton
-                label="Resume Shift"
-                testID="resume-shift-button"
-                onPress={resumeExisting}
-                icon={<Ionicons name="play" size={18} color={colors.onBrand} />}
-              />
-              <AppButton
-                label="Start New Shift"
-                variant="secondary"
-                testID="discard-shift-button"
-                onPress={discardAndStartNew}
-              />
-            </View>
+            {(() => {
+              const stale = staleLabel(resumeShift?.shift_date);
+              return (
+                <>
+                  <Text style={styles.modalTitle}>
+                    {stale ? "Old shift found" : "Unfinished shift found"}
+                  </Text>
+                  {stale ? (
+                    <View style={styles.staleBanner} testID="stale-shift-banner">
+                      <Ionicons name="warning" size={18} color={colors.warning ?? "#F5A623"} />
+                      <Text style={styles.staleBannerText}>
+                        This saved shift is {stale} — not today’s. Start a new shift unless you
+                        meant to continue it.
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.resumeBody}>
+                      There is an unsubmitted shift saved on this device:
+                    </Text>
+                  )}
+                  {resumeShift ? (
+                    <View style={styles.resumeInfo}>
+                      <ResumeRow icon="person" text={resumeShift.guard_name || "—"} />
+                      <ResumeRow icon="calendar" text={resumeShift.shift_date || "—"} />
+                      <ResumeRow
+                        icon="list"
+                        text={`${resumeShift.entries?.length ?? 0} patrol ${
+                          (resumeShift.entries?.length ?? 0) === 1 ? "entry" : "entries"
+                        }`}
+                      />
+                    </View>
+                  ) : null}
+                  <Text style={styles.resumeHint}>
+                    Resume it, or start a new shift (this discards the saved one).
+                  </Text>
+                  <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
+                    <AppButton
+                      label={stale ? "Start New Shift" : "Resume Shift"}
+                      testID={stale ? "discard-shift-button" : "resume-shift-button"}
+                      onPress={stale ? discardAndStartNew : resumeExisting}
+                      icon={<Ionicons name="play" size={18} color={colors.onBrand} />}
+                    />
+                    <AppButton
+                      label={stale ? "Resume Old Shift" : "Start New Shift"}
+                      variant="secondary"
+                      testID={stale ? "resume-shift-button" : "discard-shift-button"}
+                      onPress={stale ? resumeExisting : discardAndStartNew}
+                    />
+                  </View>
+                </>
+              );
+            })()}
           </View>
         </View>
       </Modal>
@@ -509,6 +551,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   resumeBody: { color: colors.onSurfaceSecondary, fontSize: font.base, marginBottom: spacing.md },
+  staleBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    backgroundColor: "rgba(255,193,7,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,193,7,0.35)",
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  staleBannerText: { flex: 1, color: colors.warning, fontSize: font.base, fontWeight: "600" },
   resumeInfo: {
     backgroundColor: colors.surfaceSecondary,
     borderRadius: radius.md,
