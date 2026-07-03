@@ -16,7 +16,8 @@
         "NSPhotoLibraryUsageDescription": "Attach photos to patrol entries",
         "NSMicrophoneUsageDescription": "Dictate patrol reports by voice",
         "NSSpeechRecognitionUsageDescription": "Convert your spoken report to text"
-      }
+      },
+      "bundleIdentifier": "com.emergent.nightpatrollog.sqancc"
     },
     "android": {
       "adaptiveIcon": {
@@ -29,7 +30,8 @@
         "ACCESS_COARSE_LOCATION",
         "CAMERA",
         "RECORD_AUDIO"
-      ]
+      ],
+      "package": "com.emergent.nightpatrollog.sqancc"
     },
     "web": {
       "bundler": "metro",
