@@ -18,6 +18,7 @@ import * as Haptics from "expo-haptics";
 
 import { colors, spacing, radius, font } from "@/src/lib/theme";
 import { AppButton, Toast } from "@/src/components/ui";
+import { DatePickerModal } from "@/src/components/DatePickerModal";
 import { Manager } from "@/src/lib/api";
 import { api } from "@/src/lib/api";
 import { getShift, saveShift, clearShift, uid, fetchManagers, Shift } from "@/src/lib/store";
@@ -66,6 +67,7 @@ export default function ShiftLogin() {
   const [mName, setMName] = useState("");
   const [mMobile, setMMobile] = useState("");
   const [resumeShift, setResumeShift] = useState<Shift | null>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const flash = (m: string) => {
     setToast(m);
@@ -213,13 +215,17 @@ export default function ShiftLogin() {
             onChangeText={setName}
             testID="guard-name-input"
           />
-          <Field
-            label="Shift Date"
-            placeholder="DD/MM/YYYY"
-            value={date}
-            onChangeText={setDate}
-            testID="shift-date-input"
-          />
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Shift Date</Text>
+            <Pressable
+              testID="shift-date-input"
+              onPress={() => setDatePickerOpen(true)}
+              style={styles.dateInput}
+            >
+              <Text style={styles.dateInputText}>{date}</Text>
+              <Ionicons name="calendar" size={20} color={colors.brand} />
+            </Pressable>
+          </View>
 
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionLabel}>MANAGER ON DIVERSION</Text>
@@ -394,6 +400,17 @@ export default function ShiftLogin() {
       </Modal>
 
       <Toast message={toast} visible={!!toast} />
+
+      <DatePickerModal
+        visible={datePickerOpen}
+        value={date}
+        maxDate={new Date()}
+        onCancel={() => setDatePickerOpen(false)}
+        onConfirm={(label) => {
+          setDate(label);
+          setDatePickerOpen(false);
+        }}
+      />
     </View>
   );
 }
@@ -490,6 +507,18 @@ const styles = StyleSheet.create({
     color: colors.onSurface,
     fontSize: font.lg,
   },
+  dateInput: {
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    height: 54,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dateInputText: { color: colors.onSurface, fontSize: font.lg },
   emptyManagers: {
     color: colors.onSurfaceSecondary,
     fontSize: font.base,
