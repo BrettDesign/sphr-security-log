@@ -1,0 +1,18 @@
+# SPHR Security Log — Caddy reverse proxy with AUTOMATIC free HTTPS.
+#
+# Caddy fetches and renews a free Let's Encrypt certificate for you — no manual
+# cert steps. HTTPS is REQUIRED for PWA install ("Add to Home Screen") and for
+# GPS / camera permissions to work on guards' phones.
+#
+# 1. Replace "your-domain.com" below with your real domain, OR a free subdomain
+#    (e.g. from https://www.duckdns.org — "sphr-security.duckdns.org").
+# 2. Point that domain's DNS A-record at your server's public IP address.
+# 3. Make sure ports 80 and 443 are open on the server (firewall + cloud rules).
+#
+# Everything (the PWA + the /api backend) is served by the "web" container on
+# port 80 internally, so Caddy just forwards all traffic to it.
+
+your-domain.com {
+    encode gzip
+    reverse_proxy web:80
+}

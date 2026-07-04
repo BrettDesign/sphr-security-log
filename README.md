@@ -134,3 +134,72 @@ app/
     ├── package.json
     └── .env               # EXPO_PUBLIC_BACKEND_URL (create on server)
 ```
+
+---
+
+## 8. Free hosting — deploy on Oracle Cloud "Always Free" (with automatic HTTPS)
+
+This runs the **whole app** (PWA + backend + MongoDB) on a **permanently free** Oracle
+Cloud VM, with a free auto-renewing HTTPS certificate via Caddy. No monthly bill, no
+credits. (Any small VPS such as Hetzner works with the exact same steps from step 4.)
+
+**You will need:** a free Oracle Cloud account and a domain name. If you don't own a
+domain, get a **free** subdomain at https://www.duckdns.org (e.g. `sphr.duckdns.org`).
+HTTPS is mandatory — PWA install, GPS and camera only work over `https://`.
+
+### Step 1 — Create the free server
+1. Sign up at https://www.oracle.com/cloud/free/ (a card is required for identity
+   verification only; "Always Free" resources are never charged).
+2. Create a **Compute instance**: choose an **Ampere (ARM)** shape, image **Ubuntu 22.04**.
+3. Save the SSH key it gives you, and note the instance's **public IP address**.
+4. Open the firewall for web traffic:
+   - In Oracle: VCN → your subnet's **Security List** → add **Ingress** rules allowing
+     TCP **80** and **443** from `0.0.0.0/0`.
+   - On the server (after login): `sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT`
+     and the same for `443` (or `sudo ufw allow 80,443/tcp`).
+
+### Step 2 — Point your domain at the server
+- Add a DNS **A record** for your domain → the server's public IP.
+- (DuckDNS: just set the IP in your DuckDNS dashboard.)
+
+### Step 3 — Log in and install Docker
+```bash
+ssh ubuntu@YOUR_SERVER_IP
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER && newgrp docker
+```
+
+### Step 4 — Get the code and add your secrets
+```bash
+git clone <your-github-repo-url> sphr && cd sphr
+cp .env.example .env
+nano .env          # fill in your BREVO_* values and DM_RECIPIENT_EMAIL
+```
+
+### Step 5 — Set your domain in the Caddyfile
+```bash
+nano Caddyfile     # replace "your-domain.com" with your real domain / DuckDNS name
+```
+
+### Step 6 — Launch everything (with automatic HTTPS)
+```bash
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+```
+Caddy will automatically obtain the HTTPS certificate within a minute or two.
+
+### Step 7 — You're live
+Open `https://your-domain.com`. Then guards install it on their phones:
+- **Android (Chrome/Edge):** open the link → menu **⋮ → Add to Home screen / Install app**.
+- **iPhone (Safari):** open the link → **Share** → **Add to Home Screen**.
+
+### Updating later
+```bash
+cd sphr && git pull
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+```
+
+**Notes**
+- Photos are stored in MongoDB, whose data lives in the `mongo_data` Docker volume on
+  the server's disk — no size limit beyond the disk. Back up that volume periodically.
+- Verify your sender address/domain in Brevo for reliable email delivery.
+

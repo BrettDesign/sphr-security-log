@@ -1,0 +1,35 @@
+# Adds automatic HTTPS on top of the base docker-compose.yml using Caddy.
+#
+# Use this when the app is on a public server with a domain name.
+# Run BOTH files together:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+#
+# What it does:
+#   - Puts Caddy in front as the public entry point (ports 80 + 443).
+#   - Caddy fetches a free Let's Encrypt HTTPS certificate automatically.
+#   - The "web" container is no longer exposed directly (Caddy proxies to it).
+#
+# Before running: edit the ./Caddyfile and set your real domain name.
+
+services:
+  web:
+    # Caddy handles public traffic, so don't publish the web container's port.
+    ports: []
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:
