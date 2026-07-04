@@ -313,10 +313,19 @@ async def send_report(payload: ReportCreate):
         raise HTTPException(status_code=502, detail="Could not reach email service")
 
     if resp.status_code in (200, 201, 202):
+        # Photos have now been delivered to management (inline in the email +
+        # in the attached PDF). Purge the base64 photo data from the stored
+        # report so the database stays small — the email is the photo archive.
+        # The record (locations, actions, GPS, times, door checks) is kept.
+        purged = await db.reports.update_one(
+            {"id": rid},
+            {"$set": {"entries.$[].photo": None, "photos_purged": True}},
+        )
         return {
             "sent": True,
             "recipient": DM_RECIPIENT_EMAIL,
             "pdf_attached": pdf_b64 is not None,
+            "photos_purged": purged.modified_count > 0,
             "message": f"Report emailed to {DM_RECIPIENT_EMAIL}",
         }
 
