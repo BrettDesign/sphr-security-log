@@ -13,4 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE 8001
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8001"]
+# Bind to $PORT when the platform provides one (e.g. Render); default to 8001
+# so the docker-compose / Nginx setup (which proxies to backend:8001) still works.
+CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port ${PORT:-8001}"]

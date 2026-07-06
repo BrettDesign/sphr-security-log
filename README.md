@@ -203,3 +203,40 @@ docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
   the server's disk — no size limit beyond the disk. Back up that volume periodically.
 - Verify your sender address/domain in Brevo for reliable email delivery.
 
+---
+
+## 9. Deploy on Render (no server / no terminal, click-based)
+
+Render deploys straight from this GitHub repo — no SSH or Linux commands. It runs the
+app as **two services** (frontend + backend) plus a **free MongoDB Atlas** database.
+A `render.yaml` Blueprint in this repo wires them together automatically.
+
+### Step 1 — Create a free MongoDB Atlas database
+1. Sign up at https://www.mongodb.com/cloud/atlas → create a **free M0** cluster.
+2. **Database Access:** create a database user + password (save them).
+3. **Network Access:** add IP `0.0.0.0/0` (allow from anywhere).
+4. **Connect → Drivers:** copy the connection string, e.g.
+   `mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority`
+   (put your real password in place of `PASSWORD`).
+
+### Step 2 — Deploy the Blueprint on Render
+5. Sign up at https://render.com and connect your GitHub account.
+6. Click **New + → Blueprint**, pick this repo (`sphr-security-log`), click **Apply**.
+7. Render reads `render.yaml` and asks for the secret values — fill in:
+   - `MONGO_URL` = your Atlas connection string from Step 1
+   - `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `DM_RECIPIENT_EMAIL` = your Brevo values
+8. Click **Apply / Create Resources**. Render builds both services (a few minutes).
+
+### Step 3 — You're live
+9. Open the **sphr-frontend** service → its `https://sphr-frontend-xxxx.onrender.com` URL
+   is your app. Send it to guards → they **Add to Home Screen**.
+
+### Notes
+- On the **free** plan the backend **sleeps after 15 min idle** (first request after that
+  takes ~30–60s to wake). To keep it always-on, open the **sphr-backend** service →
+  **Settings → Instance Type → Starter (~$7/mo)**. (In `render.yaml`, `plan: free`.)
+- The free MongoDB Atlas tier (512 MB) is plenty because the app **auto-deletes photos**
+  from the database once each report has been emailed.
+- Updates deploy automatically whenever you push to GitHub.
+
+

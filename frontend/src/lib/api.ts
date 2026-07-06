@@ -1,5 +1,14 @@
 // Backend API client. Base URL comes from env — never hardcoded.
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
+// Accepts: a full URL (https://api.example.com), a bare host (api.example.com,
+// as provided by Render's service linking) which we upgrade to https://, or an
+// empty value (same-origin, e.g. when served behind nginx/Caddy).
+function normalizeBase(raw?: string): string {
+  const b = (raw || "").trim();
+  if (!b) return "";
+  const withScheme = /^https?:\/\//i.test(b) ? b : `https://${b}`;
+  return withScheme.replace(/\/+$/, "");
+}
+const BASE = normalizeBase(process.env.EXPO_PUBLIC_BACKEND_URL);
 
 export type Manager = {
   id: string;
