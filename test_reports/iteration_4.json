@@ -1,0 +1,41 @@
+{
+  "summary": "REVIEW REQUEST PASSED — normalizeBase() in frontend/src/lib/api.ts causes NO regression. Backend pytest 8/8 (email test intentionally deselected to avoid a second real Brevo send this session): managers GET/POST/PUT/DELETE (+404s), reports upsert create+update, single GET (+404), list, door_checks round-trip, base64 photo round-trip. Frontend (mobile 390x844) end-to-end verified: login screen renders; manager list hydrates from API and shows all seeded managers (Zachary, Brett, Clarke, Margi, Mel); network capture confirms normalizeBase produced full https base 'https://night-patrol-log.preview.emergentagent.com' — observed GET/POST/PUT /api/managers all returning 200; Shift Date input opens the DatePickerModal (July 2026 calendar with Cancel/Select buttons visible); Add manager via UI (POST 200, appears in list); Edit manager via pencil icon (PUT 200, renamed entry visible); Start Shift with SG-204 / John Smith / selected manager navigates to /dashboard; returning to '/' re-shows the resume/stale-shift prompt (discard-shift-button visible) as expected.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/managers, POST /api/reports", "issue": "Returns 200 OK; 201 Created is more conventional (non-blocking, unchanged from prior iterations)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "global", "issue": "Console warning: 'Animated: useNativeDriver is not supported' on Expo web — cosmetic, expected on web target."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sphr_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "No code changes needed for this iteration — normalizeBase() base URL refactor did not break any frontend<->backend flow in the current Emergent preview.",
+    "Optional (future Render deploy): confirm behavior with a bare-host EXPO_PUBLIC_BACKEND_URL like 'sphr-api.onrender.com' — normalizeBase should upgrade it to 'https://sphr-api.onrender.com'. Not testable in this preview because the env var is already a full https URL."
+  ],
+  "critical_code_review_comments": [
+    "normalizeBase(raw?: string): trims, treats empty as same-origin (''), auto-prepends https:// for bare hosts, and strips trailing slashes — matches the review request contract. Regex '^https?://' is case-insensitive and correct.",
+    "req<T>() builds `${BASE}/api${path}` — with BASE='' this becomes '/api/...' (same-origin) and with a full https URL it becomes a properly formed absolute URL. Verified in browser: fetch resolved to 'https://night-patrol-log.preview.emergentagent.com/api/managers'.",
+    "server.py excludes _id via projection {\"_id\": 0} in all read endpoints — no serialization leak.",
+    "Backend PUT /api/managers/{id} returns 404 for unknown ids (verified in new test_update_manager_put).",
+    "Brevo send endpoint properly gated behind BREVO_API_KEY (503) and surfaces upstream 502 on failure; report is persisted with submitted=True before email attempt; photos are purged post-send. Not re-invoked in this iteration to avoid a second real email."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sphr_api.py — added test_update_manager_put covering PUT + 404 path (explicit review-request coverage)."
+  ],
+  "success_rate": {"backend": "100% (8/8 pytest, send-email test deselected by policy)", "frontend": "100% (all flows in review request verified)"},
+  "seed_data_creation": "None persisted. TEST_UI_* managers created during UI test were cleaned up via DELETE. TEST_Upd/TEST_Mgr rows from pytest are self-cleaned. No email was sent this iteration.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Brevo remains ACTIVE — /api/reports/send triggers a real email to dm@sphr.com.au. Limit to 0-1 call per run. UI Submit-to-DM tap in summary.tsx invokes this endpoint. The seed managers are ['Zachary','Brett','Clarke','Margi','Mel']. Login testIDs: security-number-input, guard-name-input, shift-date-input, open-add-manager-button, manager-name-input, manager-mobile-input, save-manager-button, cancel-manager-button, edit-manager-<id>, manager-card-<id>, start-shift-button, resume-shift-button, discard-shift-button. Date picker's confirm button label is 'Select' (visible in screenshot) — no fixed testID was found for it, so pytest/UI tests can dismiss via 'Cancel' or by tapping outside if needed.",
+  "rca_of_issue": "N/A — feature-verification pass on a base-URL normalization refactor. normalizeBase() behaves exactly as specified for full-URL, bare-host, and empty inputs; the Emergent preview env supplies a full https URL so the transformation is a no-op (aside from trailing-slash trim) and no regression is observable."
+}

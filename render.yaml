@@ -37,7 +37,7 @@ services:
     name: sphr-frontend
     runtime: static
     rootDir: frontend
-    buildCommand: yarn install --frozen-lockfile && npx expo export --platform web --output-dir dist
+    buildCommand: npm install --legacy-peer-deps && npx expo export --platform web --output-dir dist
     staticPublishPath: dist
     envVars:
       # Backend base URL — resolved automatically from the backend service.

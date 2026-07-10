@@ -51,6 +51,32 @@ class TestManagers:
         r = client.delete(f"{BASE_URL}/api/managers/{uuid.uuid4()}", timeout=20)
         assert r.status_code == 404
 
+    def test_update_manager_put(self, client):
+        # Create
+        payload = {"name": f"TEST_Upd_{uuid.uuid4().hex[:6]}", "mobile": "0400 111 222"}
+        r = client.post(f"{BASE_URL}/api/managers", json=payload, timeout=20)
+        assert r.status_code == 200
+        mid = r.json()["id"]
+        # Update via PUT
+        new_payload = {"name": f"TEST_UpdRenamed_{uuid.uuid4().hex[:6]}", "mobile": "0499 888 777"}
+        up = client.put(f"{BASE_URL}/api/managers/{mid}", json=new_payload, timeout=20)
+        assert up.status_code == 200, up.text
+        updated = up.json()
+        assert updated["id"] == mid
+        assert updated["name"] == new_payload["name"]
+        assert updated["mobile"] == new_payload["mobile"]
+        # Verify via GET list
+        r2 = client.get(f"{BASE_URL}/api/managers", timeout=20)
+        found = next((m for m in r2.json() if m["id"] == mid), None)
+        assert found is not None
+        assert found["name"] == new_payload["name"]
+        assert found["mobile"] == new_payload["mobile"]
+        # Update unknown -> 404
+        bad = client.put(f"{BASE_URL}/api/managers/{uuid.uuid4()}", json=new_payload, timeout=20)
+        assert bad.status_code == 404
+        # Cleanup
+        client.delete(f"{BASE_URL}/api/managers/{mid}", timeout=20)
+
 
 # --- Reports ---
 class TestReports:
