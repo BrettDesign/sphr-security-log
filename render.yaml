@@ -40,12 +40,11 @@ services:
     buildCommand: npm install --legacy-peer-deps && npx expo export --platform web --output-dir dist
     staticPublishPath: dist
     envVars:
-      # Backend base URL — resolved automatically from the backend service.
+      # Full URL of the backend service, e.g. https://sphr-backend-xxxx.onrender.com
+      # Set this to your deployed sphr-backend URL (Render asks for it on Apply).
+      # (Baked in at build time — change it here, then redeploy the frontend.)
       - key: EXPO_PUBLIC_BACKEND_URL
-        fromService:
-          type: web
-          name: sphr-backend
-          property: host
+        sync: false
     headers:
       - path: /sw.js
         name: Cache-Control
