@@ -25,7 +25,12 @@ db = client[os.environ['DB_NAME']]
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 BREVO_SENDER_EMAIL = os.environ.get('BREVO_SENDER_EMAIL', '')
 BREVO_SENDER_NAME = os.environ.get('BREVO_SENDER_NAME', 'SPHR Nightly Security')
-DM_RECIPIENT_EMAIL = os.environ.get('DM_RECIPIENT_EMAIL', 'dm@sphr.com.au')
+# Comma-separated list of report recipients. Everyone here receives the nightly report.
+DM_RECIPIENT_EMAIL = os.environ.get(
+    'DM_RECIPIENT_EMAIL',
+    'dm@sphr.com.au,supervisor@sphr.com.au,gm@sphr.com.au,ops@sphr.com.au',
+)
+DM_RECIPIENTS = [e.strip() for e in DM_RECIPIENT_EMAIL.split(',') if e.strip()]
 
 DOOR_CHECK_AREAS = [
     "GM Office", "Back Door", "Glass Doors x2", "Kitchen Door", "Hallway Gate",
@@ -262,7 +267,7 @@ def make_pdf_base64(html_str: str) -> Optional[str]:
 def send_via_brevo(subject: str, html_body: str, pdf_b64: Optional[str]) -> requests.Response:
     payload = {
         "sender": {"name": BREVO_SENDER_NAME, "email": BREVO_SENDER_EMAIL},
-        "to": [{"email": DM_RECIPIENT_EMAIL}],
+        "to": [{"email": e} for e in DM_RECIPIENTS],
         "subject": subject,
         "htmlContent": html_body,
     }
@@ -323,10 +328,10 @@ async def send_report(payload: ReportCreate):
         )
         return {
             "sent": True,
-            "recipient": DM_RECIPIENT_EMAIL,
+            "recipients": DM_RECIPIENTS,
             "pdf_attached": pdf_b64 is not None,
             "photos_purged": purged.modified_count > 0,
-            "message": f"Report emailed to {DM_RECIPIENT_EMAIL}",
+            "message": f"Report emailed to management ({len(DM_RECIPIENTS)} recipients).",
         }
 
     logger.error(f"Brevo send failed {resp.status_code}: {resp.text[:400]}")
